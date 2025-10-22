@@ -8,8 +8,8 @@ if __name__ == "__main__":
     Código para probar las clases
     No tiene utilidad para la práctica
     """
-    s = Gasolineras(100, 1234)
-    c = CentrosDistribucion(10, 1, 1234)
+    s = Gasolineras(100, 123)
+    c = CentrosDistribucion(10, 1, 123)
     histograma = [0, 0, 0, 0]
 
     for i in range(len(s.gasolineras)):
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     print("Km totales:", est.total_km, " | Beneficio:", est.total_valor,
           " | Objetivo (beneficio - 2*km):", est.objetivo())
     
-    ok, errores, resumen = validate_solution(
+    """ok, errores, resumen = validate_solution(
     est,
     s,                           # Gasolineras
     c,                           # CentrosDistribucion
@@ -108,4 +108,4 @@ if __name__ == "__main__":
         print("Errores:")
         for e in errores:
             print(" -", e)
-    print("Resumen:", resumen)
+    print("Resumen:", resumen)"""

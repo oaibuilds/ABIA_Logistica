@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from Escenario import Escenario
 from typing import List, Tuple
 

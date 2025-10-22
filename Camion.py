@@ -5,7 +5,7 @@ class Camion(object):
     Camion y su recorrido
     """
 
-    def __init__(self, k: int, ruta: List):
+    def __init__(self, k: int, ruta: List, id = int):
         self.kilometraje = k
         self.ruta = ruta
         self.id = id
@@ -18,6 +18,12 @@ class Camion(object):
     
     def getid(self):
         return self.id
+    
+    def getk(self):
+        return self.kilometraje
+    
+    def getr(self):
+        return self.ruta
     
     def __repr__(self) -> str:
         return f"Camion numero {self.id}"   

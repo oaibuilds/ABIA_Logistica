@@ -8,6 +8,19 @@ class Camion(object):
     def __init__(self, k: int, ruta: List):
         self.kilometraje = k
         self.ruta = ruta
+        self.id = id
 
-    def comprobar(self,k):
-        return k <= 0
+    def comprobark(self):
+        return self.kilometraje <= 0
+    
+    def comprobarruta(self):
+        return len(self.ruta) > 10
+    
+    def getid(self):
+        return self.id
+    
+    def __repr__(self) -> str:
+        return f"Camion numero {self.id}"   
+    
+    
+    

@@ -10,7 +10,7 @@ from aima.search import hill_climbing
 
 def construir_estado_inicial():
     gas = Gasolineras(num_gasolineras=10, seed=42)
-    centers = CentrosDistribucion(num_centros=1, multiplicidad=1, seed=133)
+    centers = CentrosDistribucion(num_centros=5, multiplicidad=1, seed=133)
     camiones = [Camion(camion_id=i, k=0, viajes=[]) for i in range(len(centers.centros))]
 
     # Solución inicial greedy

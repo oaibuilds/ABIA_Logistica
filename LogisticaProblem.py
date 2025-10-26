@@ -20,7 +20,7 @@ class LogisticaProblem(Problem):
         # AIMA maximiza 'value'. Si tu heurística es 'menos es mejor',
         # usa el negativo. Protegemos por si llega un estado raro.
         h = getattr(state, "heuristic", lambda: float("inf"))()
-        return -h
+        return h
 
     def goal_test(self, state: EstadoExtendido) -> bool:
         # Sin condición de objetivo explícita; usar el mejor valor alcanzado.

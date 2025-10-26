@@ -189,6 +189,12 @@ class EstadoExtendido(Estado):
             if len(viaje) > 0:
                 km += self._km_viaje(c_xy, viaje)
         return km
+    
+    def _kilometraje_total(self,camion:Camion):
+        a = 0
+        for truck in camion.kilometraje:
+            a += truck
+        return a
 
     # ============ VALIDACIONES ============
     def _camion_valido(self, camion: Camion) -> bool:
@@ -225,7 +231,7 @@ class EstadoExtendido(Estado):
 
     # ============ HEURÍSTICA SIMPLE ============
     def heuristic(self) -> float:
-        cam_usados = sum(1 for c in self.camiones if c.ruta)
         total_stops = sum(len(v) for c in self.camiones for v in c.ruta)
+        k_total = sum(c.kilometraje for c in self.camiones)
         # Heurística barata que favorece menos camiones y menos paradas
-        return cam_usados + 0.01 * total_stops
+        return 1000* total_stops - 2*k_total

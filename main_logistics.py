@@ -5,12 +5,13 @@ from Camion import Camion
 from SolucionBase import SolucionBase
 from EstadoExtendido import EstadoExtendido
 from LogisticaProblem import LogisticaProblem
+from problem_parametres import ProblemParameters
 
 from aima.search import hill_climbing
 
-def construir_estado_inicial():
-    gas = Gasolineras(num_gasolineras=100, seed=1234)
-    centers = CentrosDistribucion(num_centros=10, multiplicidad=1, seed=1234)
+def construir_estado_inicial(params: ProblemParameters):
+    gas = Gasolineras(num_gasolineras=params.gasolineras, seed=params.semilla)
+    centers = CentrosDistribucion(num_centros=params.centros, multiplicidad=params.multiplicidad, seed=params.semilla)
     camiones = [Camion(camion_id=i, k=0, viajes=[]) for i in range(len(centers.centros))]
 
     # Solución inicial greedy
@@ -25,11 +26,12 @@ def imprimir_estado(est):
         print(f"Camión {c.id} | km={c.kilometraje} | viajes={len(c.ruta)}")
         for i, v in enumerate(c.ruta):
             print(f"  Viaje {i}: {v}")
-    print(f"Heurística (coste estimado): {est.heuristic():.2f}")
+    print(f"Heurística (beneficio estimado): {est.heuristic():.2f}")
 
 
 def main():
-    estado_inicial = construir_estado_inicial()
+    params = ProblemParameters(gasolineras=100,centros=10,semilla=1234,mul=1)
+    estado_inicial = construir_estado_inicial(params)
     imprimir_estado(estado_inicial)
 
     problem = LogisticaProblem(estado_inicial)

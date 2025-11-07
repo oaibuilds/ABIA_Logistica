@@ -98,3 +98,5 @@ class SolucionBase(Solution):
         else:
             cam.ruta[-1].append(nueva)     # completar viaje actual a 2
         cam.kilometraje += inc
+
+       

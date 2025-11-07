@@ -63,3 +63,11 @@ class IntercambiarRuta(ProblemOperator):
 
     def __repr__(self) -> str:
        return f"Intercambiar rutas entre {self.c1} y {self.c2}"  
+    
+class AtenderYDesatenderPeticion(ProblemOperator):
+    def __init__(self, peticion1: int, peticion2: int):
+        self.p1 = peticion1
+        self.p2 = peticion2
+
+    def __repr__(self) -> str:
+       return f"Dejar de atender {self.p1} y atender {self.p2}"  

@@ -1,4 +1,5 @@
 # EstadoExtendido.py (versión revisada)
+import copy
 from typing import List, Tuple, Optional
 from Estado import Estado
 from Camion import Camion
@@ -22,7 +23,7 @@ class EstadoExtendido(Estado):
 
     # ============ COPIA PROFUNDA SEGURA ============
     def copy(self) -> "EstadoExtendido":
-        gas_copy = self.gasolineras
+        gas_copy = copy.deepcopy(self.gasolineras)
         cen_copy = self.centros
         cam_copy: List[Camion] = []
         for c in self.camiones:
@@ -235,30 +236,65 @@ class EstadoExtendido(Estado):
 
     def heuristic(self) -> float:
         """
-        H1: Beneficio estimado = Σ(precio por petición atendida) - 2 * distancia_total
+        H2: Beneficio estimado = 
+            Σ(precio por petición atendida hoy)
+            - Σ(pérdida esperada por peticiones no atendidas)
+            - 2 * distancia_total
+
+        El valor base de una petición es 1000.
+        Las no atendidas pierden valor según el factor de precio por días.
         """
+        # --- Còpia lleugera de l’estat (sense deepcopy) ---
+        gas_copy = [list(g.peticiones) for g in self.gasolineras.gasolineras]
+
         beneficio = 0.0
 
+        # --- 1. Beneficio por peticiones atendidas ---
         for c in self.camiones:
             for viaje in c.ruta:
                 for gid, pidx in viaje:
                     try:
-                        # peticiones = lista de ints (días de espera)
-                        dias = self.gasolineras.gasolineras[gid].peticiones[pidx]
+                        dias = gas_copy[gid][pidx]
                         factor = factor_precio_por_dias(dias)
-                        beneficio += 1000*factor  # precio base = 1.0
+                        beneficio += 1000 * factor
+                        # Marquem com atesa (eliminem de la còpia)
+                        gas_copy[gid][pidx] = None
                     except Exception:
                         pass
 
+        # --- 2. Pérdida por peticiones NO atendidas ---
+        perdida = 0.0
+        for gid, pet_list in enumerate(gas_copy):
+            for dias in pet_list:
+                if dias is not None:  # si no ha estat atesa
+                    factor_hoy = factor_precio_por_dias(dias)
+                    factor_mana = factor_precio_por_dias(dias + 1)
+                    # el valor perdut és la diferència entre avui i demà
+                    perdida += 1000 * (factor_hoy - factor_mana)
+
+        # --- 3. Penalización por distancia recorrida ---
         distancia_total = sum(c.kilometraje for c in self.camiones)
+
+        # --- 4. Resultado final ---
+        beneficio -= perdida
         beneficio -= 2.0 * float(distancia_total)
 
         return beneficio
 
+
+
 def factor_precio_por_dias(dias_espera: int) -> float:
-        """Devuelve el factor multiplicador del precio según los días de espera."""
-        if dias_espera <= 0:
-            return 1.02  # 102%
-        # 100 - 2^dias
-        pct = (100.0 - pow(2.0, dias_espera)) / 100.0
-        return max(0.0, min(pct, 1.02))  # acotamos entre 0% y 102%
+    """
+    Devuelve el factor multiplicador del precio según los días de espera.
+
+    - Día 0 o antes: 102% del valor base.
+    - A partir del día 1: (100 - 2^dias)%, acotado entre 0% y 102%.
+    """
+    if dias_espera <= 0:
+        return 1.02  # 102% del precio base
+
+    # Fórmula: 100 - 2^dias
+    pct = (100.0 - pow(2.0, dias_espera)) / 100.0
+
+    # Acotamos el resultado para evitar valores negativos o superiores a 1.02
+    return max(0.0, min(pct, 1.02))

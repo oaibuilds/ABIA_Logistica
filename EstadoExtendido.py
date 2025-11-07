@@ -230,8 +230,35 @@ class EstadoExtendido(Estado):
         return True
 
     # ============ HEURÍSTICA SIMPLE ============
+
+
+
     def heuristic(self) -> float:
-        total_stops = sum(len(v) for c in self.camiones for v in c.ruta)
-        k_total = sum(c.kilometraje for c in self.camiones)
-        # Heurística barata que favorece menos camiones y menos paradas
-        return 1000* total_stops - 2*k_total
+        """
+        H1: Beneficio estimado = Σ(precio por petición atendida) - 2 * distancia_total
+        """
+        beneficio = 0.0
+
+        for c in self.camiones:
+            for viaje in c.ruta:
+                for gid, pidx in viaje:
+                    try:
+                        # peticiones = lista de ints (días de espera)
+                        dias = self.gasolineras.gasolineras[gid].peticiones[pidx]
+                        factor = factor_precio_por_dias(dias)
+                        beneficio += 1000*factor  # precio base = 1.0
+                    except Exception:
+                        pass
+
+        distancia_total = sum(c.kilometraje for c in self.camiones)
+        beneficio -= 2.0 * float(distancia_total)
+
+        return beneficio
+
+def factor_precio_por_dias(dias_espera: int) -> float:
+        """Devuelve el factor multiplicador del precio según los días de espera."""
+        if dias_espera <= 0:
+            return 1.02  # 102%
+        # 100 - 2^dias
+        pct = (100.0 - pow(2.0, dias_espera)) / 100.0
+        return max(0.0, min(pct, 1.02))  # acotamos entre 0% y 102%

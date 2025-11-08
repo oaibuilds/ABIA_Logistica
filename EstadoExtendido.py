@@ -25,7 +25,7 @@ class EstadoExtendido(Estado):
 
     # ============ COPIA PROFUNDA SEGURA ============
     def copy(self) -> "EstadoExtendido":
-        gas_copy = copy.deepcopy(self.gasolineras)   # escenario (con peticiones)
+        gas_copy =  self.gasolineras  # escenario (con peticiones)
         cen_copy = self.centros                      # centros (inmutable en práctica)
         cam_copy: List[Camion] = []
         for c in self.camiones:

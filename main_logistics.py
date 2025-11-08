@@ -8,6 +8,7 @@ from LogisticaProblem import LogisticaProblem
 from problem_parametres import ProblemParameters
 from aima.search import hill_climbing
 import time
+import random
 
 
 def construir_estado_inicial(params: ProblemParameters):
@@ -31,7 +32,7 @@ def contar_peticiones(est: EstadoExtendido):
     return total, atendidas
 
 
-def imprimir_estado(est: EstadoExtendido):
+'''def imprimir_estado(est: EstadoExtendido):
     total, atendidas = contar_peticiones(est)
 
     print("\n=== ESTADO ===")
@@ -40,33 +41,65 @@ def imprimir_estado(est: EstadoExtendido):
         for i, v in enumerate(c.ruta):
             print(f"  Viaje {i}: {v}")
     print(f"\nPeticiones atendidas: {atendidas}/{total} ({100*atendidas/total:.1f}%)")
-    print(f"Heurística (beneficio estimado): {est.heuristic():.2f}")
+    print(f"Heurística (beneficio estimado): {est.heuristic():.2f}")'''
+
+
+def medir_tiempo_y_beneficio(func, params, repeticiones=10, usar_estado_inicial=False):
+    """
+    Mide tiempo medio y beneficio medio de una función.
+    Si usar_estado_inicial es True, se construye un estado inicial distinto para cada iteración.
+    """
+    tiempos = []
+    beneficios = []
+
+    for _ in range(repeticiones):
+        # Cambiamos la semilla
+        params.semilla = random.randint(0, 1000000)
+
+        # Construcción del estado inicial si es necesario
+        if usar_estado_inicial:
+            estado_inicial = construir_estado_inicial(params)
+            arg = LogisticaProblem(estado_inicial)
+        else:
+            arg = params
+
+        t0 = time.time()
+        solucion = func(arg)
+        t1 = time.time()
+
+        tiempos.append(t1 - t0)
+
+        # Calculamos beneficio
+        if hasattr(solucion, 'beneficio'):
+            beneficios.append(solucion.beneficio)
+        elif hasattr(solucion, 'calcular_beneficio'):
+            beneficios.append(solucion.calcular_beneficio())
+        elif hasattr(solucion, 'heuristic'):
+            beneficios.append(solucion.heuristic())
+
+    tiempo_medio = sum(tiempos) / repeticiones * 1000
+    beneficio_medio = sum(beneficios) / len(beneficios) if beneficios else None
+    return solucion, tiempo_medio, beneficio_medio
 
 
 def main():
     params = ProblemParameters(gasolineras=100, centros=10, semilla=1234, mul=1)
 
-    # === Medir tiempo de construcción de la solución inicial ===
-    t0 = time.time()
-    estado_inicial = construir_estado_inicial(params)
-    t1 = time.time()
-    segundos = (t1 - t0) * 1000
+    # === Construcción de la solución inicial ===
+    estado_inicial, tiempo_init, beneficio_init = medir_tiempo_y_beneficio(construir_estado_inicial, params)
+    # imprimir_estado(estado_inicial)  # Comentado según petición
+    print(f"\nTiempo medio de construcción de la solución inicial: {tiempo_init:.3f} ms")
+    if beneficio_init is not None:
+        print(f"Beneficio medio de la solución inicial: {beneficio_init:.2f}")
 
-    imprimir_estado(estado_inicial)
-    print(f"\nTiempo de construcción de la solución inicial: {segundos:.3f} milisegundos")
-    problem = LogisticaProblem(estado_inicial)
-
-    # === 1. Hill Climbing ===
+    # === Hill Climbing ===
     print("\n===== HILL CLIMBING =====")
-    t0 = time.time()
-    sol_hc = hill_climbing(problem)
-    t1 = time.time()
-
-    imprimir_estado(sol_hc)
-    segundos = (t1 - t0) * 1000
-
-    print(f"\nTiempo de ejecución del Hill Climbing: {segundos:.0f} milisegundos")
-
+    # Pasamos usar_estado_inicial=True para construir un estado distinto cada iteración
+    sol_hc, tiempo_hc, beneficio_hc = medir_tiempo_y_beneficio(hill_climbing, params, usar_estado_inicial=True)
+    # imprimir_estado(sol_hc)  # Comentado
+    print(f"\nTiempo medio de ejecución del Hill Climbing: {tiempo_hc:.0f} ms")
+    if beneficio_hc is not None:
+        print(f"Beneficio medio del Hill Climbing: {beneficio_hc:.2f}")
 
 
 if __name__ == "__main__":

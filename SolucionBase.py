@@ -19,35 +19,36 @@ class SolucionBase(Solution):
         gas = self.est.gasolineras.gasolineras
         centers = self.est.centros.centros
         cams = self.est.camiones
-
+        a = 1
+        if a !=0:
         # Lista de peticiones pendientes [(gid, pidx), ...]
-        pendientes = [(gid, pidx)
-                      for gid, g in enumerate(gas)
-                      for pidx, _ in enumerate(getattr(g, "peticiones", []))]
+            pendientes = [(gid, pidx)
+                        for gid, g in enumerate(gas)
+                        for pidx, _ in enumerate(getattr(g, "peticiones", []))]
 
-        # Normaliza estructura mínima de camiones
-        for cam in cams:
-            if not isinstance(cam.ruta, list): cam.ruta = []
-            if not hasattr(cam, "kilometraje"): cam.kilometraje = 0
+            # Normaliza estructura mínima de camiones
+            for cam in cams:
+                if not isinstance(cam.ruta, list): cam.ruta = []
+                if not hasattr(cam, "kilometraje"): cam.kilometraje = 0
 
-        # Recorre camiones; a cada uno le intenta añadir tantas peticiones como quepan
-        for t, cam in enumerate(cams):
-            hubo_asignacion = True
-            while pendientes and hubo_asignacion:
-                hubo_asignacion = False
-                j = 0
-                # barrido simple por las pendientes: si cabe, asigna y elimina
-                while j < len(pendientes):
-                    pet = pendientes[j]
-                    inc = self._km_inc_si_añado(cam, t, centers, pet)
-                    if self._cabe(cam, inc):
-                        self._asignar(cam, inc, pet)
-                        pendientes.pop(j)
-                        hubo_asignacion = True
-                        # seguimos con j (no incrementa) para intentar seguir llenando
-                    else:
-                        j += 1
-                # si en este barrido no cupo ninguna, pasamos al siguiente camión
+            # Recorre camiones; a cada uno le intenta añadir tantas peticiones como quepan
+            for t, cam in enumerate(cams):
+                hubo_asignacion = True
+                while pendientes and hubo_asignacion:
+                    hubo_asignacion = False
+                    j = 0
+                    # barrido simple por las pendientes: si cabe, asigna y elimina
+                    while j < len(pendientes):
+                        pet = pendientes[j]
+                        inc = self._km_inc_si_añado(cam, t, centers, pet)
+                        if self._cabe(cam, inc):
+                            self._asignar(cam, inc, pet)
+                            pendientes.pop(j)
+                            hubo_asignacion = True
+                            # seguimos con j (no incrementa) para intentar seguir llenando
+                        else:
+                            j += 1
+                    # si en este barrido no cupo ninguna, pasamos al siguiente camión
         return self.est
 
     # =============== Helpers mínimos ===============
@@ -89,7 +90,7 @@ class SolucionBase(Solution):
         if abrir_nuevo and len(cam.ruta) >= self.MAX_VIAJES:
             return False
         # km
-        return (cam.kilometraje + inc) <= self.MAX_KM
+        return (cam.kilometraje + inc) <= self.MAX_KM /2
 
     def _asignar(self, cam, inc, nueva):
         """Aplica la asignación (ya validada)."""

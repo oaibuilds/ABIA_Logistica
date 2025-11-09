@@ -1,11 +1,10 @@
-# EstadoExtendido.py — versión optimizada (sin deepcopy del escenario,
-# km selectivo y con índice inverso de paradas)
+# EstadoExtendido.py — versión optimizada con operador remove+add selectivo
 import copy
 from typing import List, Tuple, Dict, Optional
 from Estado import Estado
 from Camion import Camion
 from problem_operadors import (
-    MoverPeticion, AñadirPeticion, QuitarPeticion, ReinsertarEnMismoCamion
+    MoverPeticion, AñadirPeticion, QuitarPeticion, ReinsertarEnMismoCamion, AtenderYDesatenderPeticion
 )
 
 Stop = Tuple[int, int]  # (gid, pidx)
@@ -18,6 +17,7 @@ class EstadoExtendido(Estado):
       - AñadirPeticion          (parada libre → camión, best-insertion)
       - QuitarPeticion          (eliminar parada asignada)
       - ReinsertarEnMismoCamion (reordenación interna con best-insertion)
+      - Remove+Add Selectivo    (treure i afegir només k millors candidates)
 
     Mejoras clave:
       - Sin deepcopy del escenario en copy()
@@ -26,22 +26,19 @@ class EstadoExtendido(Estado):
       - Heurística sin clonar listas: usa set de atendidas
     """
 
-    # Restricciones del problema
     MAX_VIAJES = 5
     MAX_PARADAS = 2
     MAX_KM = 640
 
     # ============ COPIA SEGURA Y ÍNDICE INVERSO ============
+
     def copy(self) -> "EstadoExtendido":
-        # Escenario inmutable → no deepcopy
         gas_copy = self.gasolineras
         cen_copy = self.centros
-        # Copia de camiones/rutas
         cam_copy: List[Camion] = [
             Camion(c.id, c.kilometraje, [list(v) for v in c.ruta]) for c in self.camiones
         ]
         new = EstadoExtendido(gas_copy, cen_copy, cam_copy)
-        # Copia superficial del índice inverso
         if hasattr(self, "_pos_index") and self._pos_index is not None:
             new._pos_index = self._pos_index.copy()
         else:
@@ -61,13 +58,11 @@ class EstadoExtendido(Estado):
         return idx
 
     def _clear_index_camion(self, cid: int):
-        """Elimina del índice todas las entradas del camión cid."""
         to_del = [s for s, loc in self._pos_index.items() if loc[0] == cid]
         for s in to_del:
             del self._pos_index[s]
 
     def _reindex_camion(self, cid: int):
-        """Reconstruye solo el índice de un camión."""
         self._clear_index_camion(cid)
         C = self.camiones[cid]
         for vidx, viaje in enumerate(C.ruta):
@@ -75,12 +70,12 @@ class EstadoExtendido(Estado):
                 self._pos_index[s] = (cid, vidx, pidx)
 
     # ============ HELPERS DE STOPS ============
+
     def _stop_disponible(self, s: Stop) -> bool:
         self._ensure_index()
         return s not in self._pos_index
 
     def _paradas_disponibles(self):
-        """Itera todas las (gid,pidx) del escenario que no estén asignadas."""
         self._ensure_index()
         for gid, g in enumerate(self.gasolineras.gasolineras):
             for pidx, _dias in enumerate(g.peticiones):
@@ -89,6 +84,7 @@ class EstadoExtendido(Estado):
                     yield s
 
     # ============ GENERACIÓN DE ACCIONES ============
+
     def _destino_tiene_hueco(self, c_to: Camion) -> bool:
         if not c_to.ruta:
             return True
@@ -124,14 +120,33 @@ class EstadoExtendido(Estado):
                 for s in v:
                     yield ReinsertarEnMismoCamion(s, c)
 
-    def generate_actions(self):
-        # Orden razonable para HC
-        yield from self._posibles_movimientos()
-        yield from self._posibles_add()
-        yield from self._posibles_remove()
-        yield from self._posibles_reinsert()
+    def _posibles_swap(self, k=3):
+        parades_assignades = []
+        for c in self.camiones:
+            for viaje in c.ruta:
+                for s in viaje:
+                    parades_assignades.append((s, c.id))
+        parades_disponibles = list(self._paradas_disponibles())
+        parades_disponibles.sort(key=lambda s: self._beneficio_estimado(s), reverse=True)
+        top_candidates = parades_disponibles[:k]
+        for p1, c_from in parades_assignades:
+            for p2 in top_candidates:
+                yield AtenderYDesatenderPeticion(p1, p2)
 
+
+    def _beneficio_estimado(self, stop: Stop) -> float:
+        gid, pidx = stop
+        dias = self.gasolineras.gasolineras[gid].peticiones[pidx]
+        return 1000.0 * factor_precio_por_dias(dias)
+
+    def generate_actions(self):
+        #yield from self._posibles_movimientos()
+        yield from self._posibles_add()
+        #yield from self._posibles_remove()
+        #yield from self._posibles_reinsert()
+        yield from self._posibles_swap(k=3)
     # ============ DISTANCIAS / KM ============
+
     @staticmethod
     def _manhattan(a: Tuple[int, int], b: Tuple[int, int]) -> int:
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
@@ -165,6 +180,7 @@ class EstadoExtendido(Estado):
         return km
 
     # ============ BEST-INSERTION ============
+
     def _delta_km_insercion(self, truck_idx: int, viaje: List[Stop], stop: Stop) -> tuple[int, List[Stop]]:
         c_xy = self._centro_xy(truck_idx)
         gid = stop[0]
@@ -172,7 +188,7 @@ class EstadoExtendido(Estado):
 
         if len(viaje) == 0:
             km_new = 2 * self._manhattan(c_xy, p_xy)
-            return km_new, [stop]  # km_old=0
+            return km_new, [stop]
 
         if len(viaje) == 1:
             gid0 = viaje[0][0]
@@ -189,20 +205,18 @@ class EstadoExtendido(Estado):
             else:
                 return (km2 - km_old, [viaje[0], stop])
 
-        return (10**9, viaje)  # no cabe (capacidad=2)
+        return (10**9, viaje)
 
-    # ============ APLICACIÓN DE ACCIONES + KM SELECTIVO + ÍNDICE ============
+    # ============ APLICACIÓN DE ACCIONES ============
+
     def apply_action(self, action):
         new = self.copy()
         new._ensure_index()
 
-        # ---- MOVER ----
         if isinstance(action, MoverPeticion):
             p: Stop = action.p1
             c_from = action.c1.id
             c_to = action.c2.id
-
-            # quitar de origen
             removed = False
             for viaje in new.camiones[c_from].ruta:
                 if p in viaje:
@@ -213,11 +227,9 @@ class EstadoExtendido(Estado):
                 return None
             new.camiones[c_from].ruta = [v for v in new.camiones[c_from].ruta if v]
 
-            # insertar en destino (best-insertion)
             mejor_delta = 10**9
             mejor_plan: Optional[Tuple[str | int, List[Stop]]] = None
 
-            # abrir viaje nuevo si cabe
             if len(new.camiones[c_to].ruta) < self.MAX_VIAJES:
                 c_xy = self._centro_xy(c_to)
                 p_xy = self._gas_xy(p[0])
@@ -225,7 +237,6 @@ class EstadoExtendido(Estado):
                 mejor_delta = delta_open
                 mejor_plan = ('nuevo', [p])
 
-            # insertar en viajes existentes
             for idx, v in enumerate(new.camiones[c_to].ruta):
                 if len(v) < self.MAX_PARADAS:
                     delta, nuevo_viaje = self._delta_km_insercion(c_to, v, p)
@@ -241,19 +252,14 @@ class EstadoExtendido(Estado):
             else:
                 new.camiones[c_to].ruta[mejor_plan[0]] = mejor_plan[1]
 
-            # km selectivo
             new.camiones[c_from].kilometraje = new._km_ruta(new.camiones[c_from], c_from)
             new.camiones[c_to].kilometraje = new._km_ruta(new.camiones[c_to], c_to)
-
-            # índice inverso: reindexar solo camiones afectados
             new._reindex_camion(c_from)
             new._reindex_camion(c_to)
 
-        # ---- AÑADIR ----
         elif isinstance(action, AñadirPeticion):
             p: Stop = action.p1
             c_to = action.c.id
-
             if not new._stop_disponible(p):
                 return None
 
@@ -285,11 +291,9 @@ class EstadoExtendido(Estado):
             new.camiones[c_to].kilometraje = new._km_ruta(new.camiones[c_to], c_to)
             new._reindex_camion(c_to)
 
-        # ---- QUITAR ----
         elif isinstance(action, QuitarPeticion):
             p: Stop = action.p1
             c_from = action.c.id
-
             removed = False
             for viaje in new.camiones[c_from].ruta:
                 if p in viaje:
@@ -298,65 +302,60 @@ class EstadoExtendido(Estado):
                     break
             if not removed:
                 return None
-
             new.camiones[c_from].ruta = [v for v in new.camiones[c_from].ruta if v]
             new.camiones[c_from].kilometraje = new._km_ruta(new.camiones[c_from], c_from)
             new._reindex_camion(c_from)
 
-        # ---- REINSERTAR EN MISMO CAMIÓN ----
-        elif isinstance(action, ReinsertarEnMismoCamion):
-            p: Stop = action.p1
-            c_id = action.c.id
+        elif isinstance(action, AtenderYDesatenderPeticion):
+            p1, p2 = action.p1, action.p2
 
-            removed = False
-            for viaje in new.camiones[c_id].ruta:
-                if p in viaje:
-                    viaje.remove(p)
-                    removed = True
+            # Camió d'origen de p1
+            c_from = new._pos_index[p1][0]
+
+            # Treure p1
+            for v in new.camiones[c_from].ruta:
+                if p1 in v:
+                    v.remove(p1)
                     break
-            if not removed:
+            new.camiones[c_from].ruta = [v for v in new.camiones[c_from].ruta if v]
+
+            # Afegir p2 al primer camió amb espai
+            added = False
+            for c_to_id, cam in enumerate(new.camiones):
+                if self._destino_tiene_hueco(cam):
+                    if not cam.ruta:
+                        cam.ruta.append([p2])
+                    else:
+                        # Afegim a la primera ruta amb menys de MAX_PARADAS
+                        for v in cam.ruta:
+                            if len(v) < self.MAX_PARADAS:
+                                v.append(p2)
+                                break
+                        else:
+                            cam.ruta.append([p2])  # nova ruta si totes plenes
+                    added = True
+                    # Recalcular km i reindexar
+                    cam.kilometraje = new._km_ruta(cam, c_to_id)
+                    new._reindex_camion(c_to_id)
+                    break
+
+            if not added:
                 return None
 
-            new.camiones[c_id].ruta = [v for v in new.camiones[c_id].ruta if v]
-
-            mejor_delta = 10**9
-            mejor_plan: Optional[Tuple[str | int, List[Stop]]] = None
-
-            if len(new.camiones[c_id].ruta) < self.MAX_VIAJES:
-                c_xy = self._centro_xy(c_id)
-                p_xy = self._gas_xy(p[0])
-                delta_open = 2 * self._manhattan(c_xy, p_xy)
-                mejor_delta = delta_open
-                mejor_plan = ('nuevo', [p])
-
-            for idx, v in enumerate(new.camiones[c_id].ruta):
-                if len(v) < self.MAX_PARADAS:
-                    delta, nuevo_viaje = new._delta_km_insercion(c_id, v, p)
-                    if delta < mejor_delta:
-                        mejor_delta = delta
-                        mejor_plan = (idx, nuevo_viaje)
-
-            if mejor_plan is None:
-                return None
-
-            if mejor_plan[0] == 'nuevo':
-                new.camiones[c_id].ruta.append(mejor_plan[1])
-            else:
-                new.camiones[c_id].ruta[mejor_plan[0]] = mejor_plan[1]
-
-            new.camiones[c_id].kilometraje = new._km_ruta(new.camiones[c_id], c_id)
-            new._reindex_camion(c_id)
+            # Recalcular km i reindexar camió origen
+            new.camiones[c_from].kilometraje = new._km_ruta(new.camiones[c_from], c_from)
+            new._reindex_camion(c_from)
 
         else:
-            return None  # operador no soportado
+            return None
 
-        # Validación final
         if not new._estado_valido(new):
             return None
 
         return new
 
     # ============ VALIDACIONES ============
+
     def _camion_valido(self, camion: Camion) -> bool:
         if len(camion.ruta) > self.MAX_VIAJES:
             return False
@@ -368,7 +367,6 @@ class EstadoExtendido(Estado):
         return True
 
     def _stops_unicos(self, est: "EstadoExtendido") -> bool:
-        # Con índice inverso debería cumplirse siempre; verificamos por seguridad.
         vistos = []
         for C in est.camiones:
             for v in C.ruta:
@@ -383,15 +381,9 @@ class EstadoExtendido(Estado):
             return False
         return True
 
-    # ============ HEURÍSTICA (sin clonar listas) ============
+    # ============ HEURÍSTICA ============
+
     def heuristic(self) -> float:
-        """
-        Beneficio =
-            Σ(precio por atendidas)
-          - Σ(pérdida (hoy→mañana) de NO atendidas)
-          - 2 * distancia_total
-        """
-        # 1) Paradas atendidas (set para O(1) membership)
         atendidas: set[Stop] = set()
         beneficio = 0.0
 
@@ -403,7 +395,6 @@ class EstadoExtendido(Estado):
                     dias = self.gasolineras.gasolineras[gid].peticiones[pidx]
                     beneficio += 1000.0 * factor_precio_por_dias(dias)
 
-        # 2) Pérdida por NO atendidas
         perdida = 0.0
         for gid, g in enumerate(self.gasolineras.gasolineras):
             for pidx, dias in enumerate(g.peticiones):
@@ -413,7 +404,6 @@ class EstadoExtendido(Estado):
                     factor_mana = factor_precio_por_dias(dias + 1)
                     perdida += 1000.0 * (factor_hoy - factor_mana)
 
-        # 3) Penalización por distancia
         distancia_total = sum(c.kilometraje for c in self.camiones)
         self.ben = beneficio - 2.0 * float(distancia_total)
 

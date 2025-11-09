@@ -44,7 +44,7 @@ def contar_peticiones(est: EstadoExtendido):
     print(f"Heurística (beneficio estimado): {est.heuristic():.2f}")'''
 
 
-def medir_tiempo_y_beneficio(func, params, repeticiones=10, usar_estado_inicial=False):
+def medir_tiempo_y_beneficio(func, params, repeticiones=1, usar_estado_inicial=False):
     """
     Mide tiempo medio y beneficio medio de una función.
     Si usar_estado_inicial es True, se construye un estado inicial distinto para cada iteración.
@@ -54,7 +54,7 @@ def medir_tiempo_y_beneficio(func, params, repeticiones=10, usar_estado_inicial=
 
     for _ in range(repeticiones):
         # Cambiamos la semilla
-        params.semilla = random.randint(0, 1000000)
+        params.semilla = 1234
 
         # Construcción del estado inicial si es necesario
         if usar_estado_inicial:
@@ -91,6 +91,8 @@ def main():
     print(f"\nTiempo medio de construcción de la solución inicial: {tiempo_init:.3f} ms")
     if beneficio_init is not None:
         print(f"Beneficio medio de la solución inicial: {beneficio_init:.2f}")
+    if hasattr(estado_inicial, 'ben'):
+        print(f"BENEFICIO DIARIO (inicial): {estado_inicial.ben:.2f}")
 
     # === Hill Climbing ===
     print("\n===== HILL CLIMBING =====")
@@ -100,7 +102,8 @@ def main():
     print(f"\nTiempo medio de ejecución del Hill Climbing: {tiempo_hc:.0f} ms")
     if beneficio_hc is not None:
         print(f"Beneficio medio del Hill Climbing: {beneficio_hc:.2f}")
-
+    if hasattr(sol_hc, 'ben'):
+        print(f"BENEFICIO DIARIO (Hill Climbing): {sol_hc.ben:.2f}")
 
 if __name__ == "__main__":
     main()

@@ -415,6 +415,7 @@ class EstadoExtendido(Estado):
 
         # 3) Penalización por distancia
         distancia_total = sum(c.kilometraje for c in self.camiones)
+        self.ben = beneficio - 2.0 * float(distancia_total)
 
         return beneficio - perdida - 2.0 * float(distancia_total)
 

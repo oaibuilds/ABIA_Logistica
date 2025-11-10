@@ -14,7 +14,6 @@ class SolucionBase(Solution):
     MAX_VIAJES = 5
     MAX_PARADAS = 2
     MAX_KM = 640
-
     def build(self):
         gas = self.est.gasolineras.gasolineras
         centers = self.est.centros.centros

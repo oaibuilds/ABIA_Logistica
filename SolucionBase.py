@@ -90,7 +90,7 @@ class SolucionBase(Solution):
         if abrir_nuevo and len(cam.ruta) >= self.MAX_VIAJES:
             return False
         # km
-        return (cam.kilometraje + inc) <= self.MAX_KM /2
+        return (cam.kilometraje + inc) <= self.MAX_KM/2
 
     def _asignar(self, cam, inc, nueva):
         """Aplica la asignación (ya validada)."""

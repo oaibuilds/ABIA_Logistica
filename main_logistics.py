@@ -44,7 +44,7 @@ def contar_peticiones(est: EstadoExtendido):
     print(f"Heurística (beneficio estimado): {est.heuristic():.2f}")'''
 
 
-def medir_tiempo_y_beneficio(func, params, repeticiones=1, usar_estado_inicial=False):
+def medir_tiempo_y_beneficio(func, params, repeticiones=10, usar_estado_inicial=False):
     """
     Mide tiempo medio y beneficio medio de una función.
     Si usar_estado_inicial es True, se construye un estado inicial distinto para cada iteración.
@@ -54,7 +54,7 @@ def medir_tiempo_y_beneficio(func, params, repeticiones=1, usar_estado_inicial=F
 
     for _ in range(repeticiones):
         # Cambiamos la semilla
-        params.semilla = 1234
+        params.semilla = random.randint(1,1500)
 
         # Construcción del estado inicial si es necesario
         if usar_estado_inicial:

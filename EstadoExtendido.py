@@ -405,7 +405,7 @@ class EstadoExtendido(Estado):
                     perdida += 1000.0 * (factor_hoy - factor_mana)
 
         distancia_total = sum(c.kilometraje for c in self.camiones)
-        self.ben = beneficio
+        self.ben = beneficio - perdida - (2.0 * float(distancia_total))
 
         return -(beneficio/5 - perdida - (2.0 * float(distancia_total)))
 

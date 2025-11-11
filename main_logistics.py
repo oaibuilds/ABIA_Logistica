@@ -3,6 +3,8 @@ from Gasolineras import Gasolineras
 from CentrosDistribucion import CentrosDistribucion
 from Camion import Camion
 from SolucionBase import SolucionBase
+from SolucionGreedy import SolucionGreedy
+from SolucionVacia import SolucionVacia
 from EstadoExtendido import EstadoExtendido
 from LogisticaProblem import LogisticaProblem
 from problem_parametres import ProblemParameters
@@ -18,7 +20,7 @@ def construir_estado_inicial(params: ProblemParameters):
 
     # Solución inicial greedy
     estado = EstadoExtendido(gas, centers, camiones)
-    SolucionBase(estado).build()
+    SolucionVacia(estado).build()
     return estado
 
 
@@ -44,7 +46,7 @@ def contar_peticiones(est: EstadoExtendido):
     print(f"Heurística (beneficio estimado): {est.heuristic():.2f}")'''
 
 
-def medir_tiempo_y_beneficio(func, params, repeticiones=10, usar_estado_inicial=False):
+def medir_tiempo_y_beneficio(func, params, repeticiones=1, usar_estado_inicial=False):
     """
     Mide tiempo medio y beneficio medio de una función.
     Si usar_estado_inicial es True, se construye un estado inicial distinto para cada iteración.
@@ -54,7 +56,7 @@ def medir_tiempo_y_beneficio(func, params, repeticiones=10, usar_estado_inicial=
 
     for _ in range(repeticiones):
         # Cambiamos la semilla
-        params.semilla = random.randint(1,1500)
+        params.semilla = 1234
 
         # Construcción del estado inicial si es necesario
         if usar_estado_inicial:
@@ -83,7 +85,7 @@ def medir_tiempo_y_beneficio(func, params, repeticiones=10, usar_estado_inicial=
 
 
 def main():
-    params = ProblemParameters(gasolineras=100, centros=10, semilla=1234, mul=1)
+    params = ProblemParameters(gasolineras=100, centros=10, semilla=2143, mul=1)
 
     # === Construcción de la solución inicial ===
     estado_inicial, tiempo_init, beneficio_init = medir_tiempo_y_beneficio(construir_estado_inicial, params)

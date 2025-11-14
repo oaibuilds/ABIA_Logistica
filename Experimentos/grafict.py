@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Paràmetres
+# Parámetros
 k = 10           # temperatura inicial
 lmbda = 0.01     # constante de enfriamiento
 n_iter = 500     # numero de iteraciones

@@ -51,7 +51,7 @@ class EstadoExtendido(Estado):
         new = EstadoExtendido(gas_copy, cen_copy, cam_copy)
         # Heredar set activo
         new.operadores_activos = list(getattr(self, "operadores_activos", []))
-        # Reconstruir índice al vuelo cuando haga falta
+        # Reconstruir índice cuando haga falta
         new._pos_index = None
         return new
 
@@ -463,7 +463,7 @@ class EstadoExtendido(Estado):
         distancia_total = sum(c.kilometraje for c in self.camiones)
         self.ben = beneficio - 2.0 * float(distancia_total) - perdida
 
-        # AIMA: minimizamos heuristic() → devolvemos coste
+        
         return -(beneficio/5 - perdida - (2.0 * float(distancia_total)))
 
 

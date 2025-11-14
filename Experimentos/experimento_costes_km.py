@@ -1,7 +1,6 @@
 # experimento_coste_km.py
 # Experimento 6: Aumento del coste por kilómetro
 # - Reutiliza el pipeline del Exp.1 (mismas semillas por configuración)
-# - No modifica tu código base: subclase de EstadoExtendido con coste_km paramétrico
 # - Mide beneficio, distancia media y tiempo
 
 import time
@@ -58,18 +57,14 @@ class EstadoCosteKm(EstadoExtendido):
         return -(beneficio/5 - perdida - (self.coste_km * float(distancia_total)))
 
 
-# =========================
 # Configuración
-# =========================
 N_GASOLINERAS = 100
 N_CENTROS = 10
 MULTIPLICIDAD = 1
 REPLICAS = 10
 COSTES = [2.0, 4.0, 8.0, 16.0]  
 
-# =========================
 # Utilidades estadísticas
-# =========================
 def ic95(std: float, n: int) -> float:
     return 0.0 if n <= 1 else 1.96 * std / sqrt(n)
 
@@ -80,9 +75,7 @@ def resumen_metricas(valores):
     return {"mean": mean, "std": std, "ic95": ic95(std, len(arr)),
             "min": float(np.min(arr)), "max": float(np.max(arr)), "n": len(arr)}
 
-# =========================
 # Núcleo de ejecución
-# =========================
 def _wrap_estado_con_coste(est: EstadoExtendido, coste_km: float) -> EstadoCosteKm:
     """Convierte EstadoExtendido -> EstadoCosteKm heredando rutas, km y operadores."""
     cam_copy = [type(est.camiones[0])(c.id, c.kilometraje, [list(v) for v in c.ruta])
@@ -144,9 +137,7 @@ def ejecutar_experimento_coste(costes=COSTES, replicas=REPLICAS) -> dict:
         }
     return resultados
 
-# =========================
 # PLOTS 
-# =========================
 def plot_linea(resultados: dict, titulo: str):
     xs = sorted(resultados.keys())
     ben_mean = [resultados[c]["resumen"]["beneficio"]["mean"] for c in xs]
@@ -290,9 +281,7 @@ def plot_cambios_relativos_vs_base(resultados: dict, coste_base: float, titulo: 
     plt.tight_layout()
     plt.show()
 
-# =========================
 # Main
-# =========================
 def main():
     print("== Experimento 6: Aumento del coste por kilómetro ==")
     print(f"Escenario: centros={N_CENTROS}, gasolineras={N_GASOLINERAS}, operadores=C\n")

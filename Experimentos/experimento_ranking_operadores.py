@@ -16,9 +16,7 @@ from aima.search import hill_climbing
 from EstadoExtendido import EstadoExtendido
 
 
-# =========================
 # Configuración
-# =========================
 
 SETS_CHZ = {
     "C": ["_posibles_add", "_posibles_remove", "_posibles_movimientos"],
@@ -45,9 +43,8 @@ OPERADORES_POSIBLES = [
 ORIGINAL_METHODS = {}
 
 
-# =========================
 # Parcheo de EstadoExtendido para contar operadores
-# =========================
+
 
 def patch_operadores(counter: dict[str, int]):
     """
@@ -80,9 +77,7 @@ def unpatch_operadores():
     ORIGINAL_METHODS.clear()
 
 
-# =========================
 # Núcleo: una réplica con conteo de operadores
-# =========================
 
 def ejecutar_una_replica_con_conteo(activos: list[str], semilla: int) -> dict:
     # Contador local de operadores para esta réplica
@@ -130,9 +125,7 @@ def ejecutar_una_replica_con_conteo(activos: list[str], semilla: int) -> dict:
         unpatch_operadores()
 
 
-# =========================
-# Bucle de experimento CHZ
-# =========================
+# Bucle de experimento 
 
 def ejecutar_experimento_ranking(replicas: int = REPLICAS) -> dict:
     rng = random.Random(123456)
@@ -159,9 +152,7 @@ def ejecutar_experimento_ranking(replicas: int = REPLICAS) -> dict:
     return resultados
 
 
-# =========================
 # Ranking y resumen por consola
-# =========================
 
 def imprimir_ranking_operadores(resultados: dict):
     print("\n== Ranking global de operadores por conjunto (sobre todas las réplicas) ==")
@@ -185,9 +176,7 @@ def imprimir_ranking_operadores(resultados: dict):
             print(f"  {op:22s}  {cnt:8d}  ({pct:5.1f}%)")
 
 
-# =========================
-# Histograma 3D (colores + leyenda, sin nombres en ejes)
-# =========================
+# Histograma 3D 
 
 def plot_histograma_3d(resultados: dict):
     """
@@ -239,7 +228,6 @@ def plot_histograma_3d(resultados: dict):
                 shade=True,
             )
 
-    # Ángulo de cámara para que no se solape tanto
     ax.view_init(elev=25, azim=40)
 
     # Eje X: sets
@@ -273,9 +261,7 @@ def plot_histograma_3d(resultados: dict):
     plt.show()
 
 
-# =========================
 # Main
-# =========================
 
 def main():
     print("== Experimento Extra: Ranking de operadores usados (C, H, Z) ==")

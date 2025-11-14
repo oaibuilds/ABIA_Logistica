@@ -14,15 +14,11 @@ class LogisticaProblem(Problem):
 
     def result(self, state: EstadoExtendido, action: ProblemOperator) -> EstadoExtendido:
         new_state = state.apply_action(action)
-        # ⬇️ CLAVE: si la acción no es factible y devuelve None, nos quedamos en el mismo estado
         return new_state if new_state is not None else state
 
     def value(self, state: EstadoExtendido) -> float:
-        # AIMA maximiza 'value'. Si tu heurística es 'menos es mejor',
-        # usa el negativo. Protegemos por si llega un estado raro.
         h = getattr(state, "heuristic", lambda: float("inf"))()
         return -h
 
     def goal_test(self, state: EstadoExtendido) -> bool:
-        # Sin condición de objetivo explícita; usar el mejor valor alcanzado.
         return False

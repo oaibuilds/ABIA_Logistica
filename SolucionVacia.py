@@ -3,12 +3,7 @@ from Solucion import Solution
 
 class SolucionGreedy(Solution):
     """
-    Llena camión a camión:
-      - Para cada camión, recorre la lista de peticiones pendientes y va añadiendo
-        mientras no viole: ≤5 viajes, ≤2 paradas/viaje, km ≤ 640.
-      - Cuando ya no cabe más en ese camión, pasa al siguiente.
-    Representación R1: camion.ruta = [ [ (gid,pidx) ], [ (gid,pidx),(gid,pidx) ], ... ]
-    Modelo A (km): centro -> paradas -> centro (distancia Manhattan).
+    Devuelve el estado vacío
     """
 
     MAX_VIAJES = 5

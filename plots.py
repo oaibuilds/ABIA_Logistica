@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 
-# Dades per cada mètode
 replicas = list(range(1, 11))
 
 # Beneficio Solución Final (€)

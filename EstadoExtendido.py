@@ -382,11 +382,10 @@ class EstadoExtendido(Estado):
         return True
 
     # ============ HEURÍSTICA ============
-
     def heuristic(self) -> float:
         atendidas: set[Stop] = set()
         beneficio = 0.0
-
+    
         for c in self.camiones:
             for viaje in c.ruta:
                 for s in viaje:
@@ -406,8 +405,9 @@ class EstadoExtendido(Estado):
 
         distancia_total = sum(c.kilometraje for c in self.camiones)
         self.ben = beneficio - perdida - (2.0 * float(distancia_total))
+    
 
-        return -(beneficio/5 - perdida - (2.0 * float(distancia_total)))
+        return -(beneficio/(5) - perdida - (2.0 * float(distancia_total)))
 
 
 def factor_precio_por_dias(dias_espera: int) -> float:

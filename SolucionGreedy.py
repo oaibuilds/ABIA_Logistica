@@ -4,6 +4,7 @@ from Solucion import Solution
 class SolucionGreedy(Solution):
     """
     Llena camión a camión:
+      - Previamente, ordena las peticiones por beneficio 
       - Para cada camión, recorre la lista de peticiones pendientes y va añadiendo
         mientras no viole: ≤5 viajes, ≤2 paradas/viaje, km ≤ 640.
       - Cuando ya no cabe más en ese camión, pasa al siguiente.
@@ -24,37 +25,36 @@ class SolucionGreedy(Solution):
         centers = self.est.centros.centros
         cams = self.est.camiones
 
-        # Llista de peticions pendents [(gid, pidx), ...]
+        
         pendientes = [
             (gid, pidx)
             for gid, g in enumerate(gas)
             for pidx, _ in enumerate(getattr(g, "peticiones", []))
         ]
 
-        # ===================== ORDENACIÓ =====================
+        # Ordenamos
         def beneficio_peticion(gid, pidx):
             dias = gas[gid].peticiones[pidx]
             return 1000 * (100 - 2 * dias) / 100.0  # segons enunciat
 
-        # 🔸 Ordena primer per benefici (descendent)
-        # Si vols prioritzar també antiguitat exacta (com a segon criteri):
+   
         pendientes.sort(
             key=lambda x: (
-                beneficio_peticion(x[0], x[1]),  # benefici principal
-                -gas[x[0]].peticiones[x[1]]      # més dies → lleugerament més prioritat
+                beneficio_peticion(x[0], x[1]),  #Prioridad principal por beneficio 
+                -gas[x[0]].peticiones[x[1]]      # Tambien damos prioridad por mas dias de espera
             ),
             reverse=True
         )
-        # =====================================================
+    
 
-        # Inicialitza camions
+    
         for cam in cams:
             if not isinstance(cam.ruta, list):
                 cam.ruta = []
             if not hasattr(cam, "kilometraje"):
                 cam.kilometraje = 0
 
-        # Recorre camions
+
         for t, cam in enumerate(cams):
             hubo_asignacion = True
             while pendientes and hubo_asignacion:
@@ -73,10 +73,10 @@ class SolucionGreedy(Solution):
 
 
 
-    # =============== Helpers mínimos ===============
+
 
     def _centro_xy(self, truck_idx, centers):
-        c = centers[truck_idx]           # C1: centro t → centers[t]
+        c = centers[truck_idx]           
         return (c.cx, c.cy)
 
     def _gas_xy(self, gid):
@@ -84,7 +84,6 @@ class SolucionGreedy(Solution):
         return (g.cx, g.cy)
 
     def _km_viaje(self, c_xy, paradas):
-        # 1 parada:  centro->p->centro  ; 2 paradas: centro->p1->p2->centro
         if len(paradas) == 1:
             p1 = self._gas_xy(paradas[0][0])
             return 2 * self.manhattan(c_xy, p1)
@@ -95,31 +94,25 @@ class SolucionGreedy(Solution):
                + self.manhattan(p2, c_xy) )
 
     def _km_inc_si_añado(self, cam, truck_idx, centers, nueva):
-        """Km incrementales por añadir 'nueva' al último viaje o abriendo uno nuevo."""
         cxy = self._centro_xy(truck_idx, centers)
-        if not cam.ruta:                               # abrir 1º viaje
+        if not cam.ruta:                          
             return self._km_viaje(cxy, [nueva])
         last = cam.ruta[-1]
-        if len(last) == 1:                             # completar 2ª parada
+        if len(last) == 1:                          
             return self._km_viaje(cxy, [last[0], nueva]) - self._km_viaje(cxy, last)
-        # último ya con 2 paradas → abrir viaje nuevo
         return self._km_viaje(cxy, [nueva])
 
     def _cabe(self, cam, inc):
-        """Chequea restricciones estructurales y km."""
-        # si hay que abrir viaje nuevo y ya tiene 5 → no cabe
         abrir_nuevo = (not cam.ruta) or (len(cam.ruta[-1]) == self.MAX_PARADAS)
         if abrir_nuevo and len(cam.ruta) >= self.MAX_VIAJES:
             return False
-        # km
         return (cam.kilometraje + inc) <= self.MAX_KM/2
 
     def _asignar(self, cam, inc, nueva):
-        """Aplica la asignación (ya validada)."""
         if not cam.ruta or len(cam.ruta[-1]) == self.MAX_PARADAS:
-            cam.ruta.append([nueva])       # viaje nuevo con 1 parada
+            cam.ruta.append([nueva])      
         else:
-            cam.ruta[-1].append(nueva)     # completar viaje actual a 2
+            cam.ruta[-1].append(nueva)     
         cam.kilometraje += inc
 
        

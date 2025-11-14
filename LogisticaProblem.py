@@ -2,6 +2,7 @@ from typing import Generator
 from aima.search import Problem
 from problem_operadors import ProblemOperator
 from EstadoExtendido import EstadoExtendido
+from Gasolineras import Gasolineras
 
 
 class LogisticaProblem(Problem):

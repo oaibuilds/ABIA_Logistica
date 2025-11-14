@@ -3,14 +3,11 @@ from Gasolineras import Gasolineras
 from CentrosDistribucion import CentrosDistribucion
 from Camion import Camion
 from SolucionBase import SolucionBase
-from SolucionGreedy import SolucionGreedy
-from SolucionVacia import SolucionVacia
 from EstadoExtendido import EstadoExtendido
 from LogisticaProblem import LogisticaProblem
 from problem_parametres import ProblemParameters
-from aima.search import hill_climbing
+from aima.search import hill_climbing, simulated_annealing, exp_schedule
 import time
-import random
 
 
 def construir_estado_inicial(params: ProblemParameters):
@@ -18,14 +15,12 @@ def construir_estado_inicial(params: ProblemParameters):
     centers = CentrosDistribucion(num_centros=params.centros, multiplicidad=params.multiplicidad, seed=params.semilla)
     camiones = [Camion(camion_id=i, k=0, viajes=[]) for i in range(len(centers.centros))]
 
-    # Solución inicial greedy
     estado = EstadoExtendido(gas, centers, camiones)
     SolucionBase(estado).build()
     return estado
 
 
 def contar_peticiones(est: EstadoExtendido):
-    """Devuelve (total, atendidas)"""
     total = sum(len(g.peticiones) for g in est.gasolineras.gasolineras)
     atendidas = 0
     for c in est.camiones:
@@ -34,31 +29,11 @@ def contar_peticiones(est: EstadoExtendido):
     return total, atendidas
 
 
-'''def imprimir_estado(est: EstadoExtendido):
-    total, atendidas = contar_peticiones(est)
-
-    print("\n=== ESTADO ===")
-    for c in est.camiones:
-        print(f"Camión {c.id} | km={c.kilometraje} | viajes={len(c.ruta)}")
-        for i, v in enumerate(c.ruta):
-            print(f"  Viaje {i}: {v}")
-    print(f"\nPeticiones atendidas: {atendidas}/{total} ({100*atendidas/total:.1f}%)")
-    print(f"Heurística (beneficio estimado): {est.heuristic():.2f}")'''
-
-
 def medir_tiempo_y_beneficio(func, params, repeticiones=1, usar_estado_inicial=False):
-    """
-    Mide tiempo medio y beneficio medio de una función.
-    Si usar_estado_inicial es True, se construye un estado inicial distinto para cada iteración.
-    """
     tiempos = []
     beneficios = []
 
     for _ in range(repeticiones):
-        # Cambiamos la semilla
-        params.semilla = params.semilla
-
-        # Construcción del estado inicial si es necesario
         if usar_estado_inicial:
             estado_inicial = construir_estado_inicial(params)
             arg = LogisticaProblem(estado_inicial)
@@ -71,7 +46,6 @@ def medir_tiempo_y_beneficio(func, params, repeticiones=1, usar_estado_inicial=F
 
         tiempos.append(t1 - t0)
 
-        # Calculamos beneficio
         if hasattr(solucion, 'beneficio'):
             beneficios.append(solucion.beneficio)
         elif hasattr(solucion, 'calcular_beneficio'):
@@ -85,7 +59,15 @@ def medir_tiempo_y_beneficio(func, params, repeticiones=1, usar_estado_inicial=F
 
 
 def main():
-    params = ProblemParameters(gasolineras=100, centros=10, semilla=9677, mul=1)
+    params = ProblemParameters(gasolineras=100, centros=10, semilla=1234, mul=1)
+
+    # === Configuración del algoritmo ===
+    algoritmo = "hill"  # Cambia entre "hill" o "annealing"
+
+    # Parámetros para simulated annealing
+    k_sa = 10
+    lam_sa = 0.001
+    limit_sa = 1000
 
     # === Construcción de la solución inicial ===
     estado_inicial, tiempo_init, beneficio_init = medir_tiempo_y_beneficio(construir_estado_inicial, params)
@@ -95,31 +77,46 @@ def main():
     if hasattr(estado_inicial, 'ben'):
         print(f"BENEFICIO DIARIO (inicial): {estado_inicial.ben:.2f}")
 
-    # --- Número de peticiones atendidas ---
     total, atendidas = contar_peticiones(estado_inicial)
     print(f"Peticiones atendidas (solución inicial): {atendidas}/{total} ({100*atendidas/total:.1f}%)")
-
-    # --- Kilometraje total ---
     km_total = sum(c.kilometraje for c in estado_inicial.camiones)
     print(f"Kilometraje total (solución inicial): {km_total:.2f} km")
 
-    # === Hill Climbing ===
-    print("\n===== HILL CLIMBING =====")
-    sol_hc, tiempo_hc, beneficio_hc = medir_tiempo_y_beneficio(hill_climbing, params, usar_estado_inicial=True)
-    print(f"\nTiempo medio de ejecución del Hill Climbing: {tiempo_hc:.0f} ms")
-    if beneficio_hc is not None:
-        print(f"Beneficio medio del Hill Climbing: {beneficio_hc:.2f}")
-    if hasattr(sol_hc, 'ben'):
-        print(f"BENEFICIO DIARIO (Hill Climbing): {sol_hc.ben:.2f}")
+    # === Selección y ejecución del algoritmo ===
+    if algoritmo == "hill":
+        print("\n===== HILL CLIMBING =====")
+        problem = LogisticaProblem(construir_estado_inicial(params))
+        t0 = time.time()
+        sol = hill_climbing(problem)
+        t1 = time.time()
+        tiempo = (t1 - t0) * 1000
+        beneficio = sol.heuristic() if hasattr(sol, 'heuristic') else None
 
-    # --- Número de peticiones atendidas ---
-    if hasattr(sol_hc, 'camiones'):
-        total_hc, atendidas_hc = contar_peticiones(sol_hc)
-        print(f"Peticiones atendidas (Hill Climbing): {atendidas_hc}/{total_hc} ({100*atendidas_hc/total_hc:.1f}%)")
+    elif algoritmo == "annealing":
+        print("\n===== SIMULATED ANNEALING =====")
+        schedule = exp_schedule(k=k_sa, lam=lam_sa, limit=limit_sa)
+        problem = LogisticaProblem(construir_estado_inicial(params))
+        t0 = time.time()
+        sol = simulated_annealing(problem, schedule)
+        t1 = time.time()
+        tiempo = (t1 - t0) * 1000
+        beneficio = sol.heuristic() if hasattr(sol, 'heuristic') else None
 
-        # --- Kilometraje total ---
-        km_total_hc = sum(c.kilometraje for c in sol_hc.camiones)
-        print(f"Kilometraje total (Hill Climbing): {km_total_hc:.2f} km")
+    else:
+        raise ValueError("Algoritmo no reconocido. Usa 'hill' o 'annealing'.")
+
+    # === Resultados ===
+    print(f"\nTiempo de ejecución ({algoritmo}): {tiempo:.0f} ms")
+    if beneficio is not None:
+        print(f"Beneficio final ({algoritmo}): {beneficio:.2f}")
+    if hasattr(sol, 'ben'):
+        print(f"BENEFICIO DIARIO ({algoritmo}): {sol.ben:.2f}")
+
+    if hasattr(sol, 'camiones'):
+        total_s, atendidas_s = contar_peticiones(sol)
+        print(f"Peticiones atendidas ({algoritmo}): {atendidas_s}/{total_s} ({100*atendidas_s/total_s:.1f}%)")
+        km_total_s = sum(c.kilometraje for c in sol.camiones)
+        print(f"Kilometraje total ({algoritmo}): {km_total_s:.2f} km")
 
 
 if __name__ == "__main__":

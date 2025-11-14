@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 
-# Dades per cada mètode
 replicas = list(range(1, 11))
 
 semillas = [2548,9493,4496,2944,829,4649,4864,3339,5555,9677]

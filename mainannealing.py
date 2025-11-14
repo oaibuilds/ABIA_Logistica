@@ -31,7 +31,7 @@ def main():
     algoritmo = "annealing"  # "hill" o "annealing"
     repeticiones = 10
 
-    seeds = [] #Poner lista de de semillas
+    seeds = [1] #Poner lista de de semillas
 
     k_sa = 10
     lam_sa = 0.01

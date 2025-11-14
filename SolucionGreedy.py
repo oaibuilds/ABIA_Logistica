@@ -40,7 +40,7 @@ class SolucionGreedy(Solution):
    
         pendientes.sort(
             key=lambda x: (
-                beneficio_peticion(x[0], x[1]),  #Prioridad principal por beneficio 
+                beneficio_peticion(x[0], x[1]),  # Prioridad principal por beneficio 
                 -gas[x[0]].peticiones[x[1]]      # Tambien damos prioridad por mas dias de espera
             ),
             reverse=True

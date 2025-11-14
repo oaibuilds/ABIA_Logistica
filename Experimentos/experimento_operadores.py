@@ -1,4 +1,4 @@
-# experimento_operadores_solo_pantalla.py
+# experimento_operadores.py
 
 import time
 from math import sqrt
@@ -101,9 +101,9 @@ def ejecutar_experimento(sets: dict[str,list[str]], replicas=REPLICAS):
     return resultados
 
 
-# ============================================================
-#  VISUALIZACIÓN — SOLO SE MUESTRA EN PANTALLA
-# ============================================================
+# ===============
+#  VISUALIZACIÓN 
+# ===============
 
 def plot_barras_con_error(resultados: dict, titulo: str):
     sets = sorted(resultados.keys())

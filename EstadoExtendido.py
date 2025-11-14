@@ -1,4 +1,4 @@
-# EstadoExtendido.py — versión con sets de operadores activables por estado
+# EstadoExtendido.py 
 import copy
 from typing import List, Tuple, Dict, Optional
 from Estado import Estado
@@ -472,3 +472,4 @@ def factor_precio_por_dias(dias_espera: int) -> float:
         return 1.02
     pct = (100.0 - pow(2.0, dias_espera)) / 100.0
     return max(0.0, min(pct, 1.02))
+

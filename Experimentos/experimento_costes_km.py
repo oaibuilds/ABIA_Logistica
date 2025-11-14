@@ -1,8 +1,8 @@
-# experimento_coste_km_solo_pantalla.py
+# experimento_coste_km.py
 # Experimento 6: Aumento del coste por kilómetro
 # - Reutiliza el pipeline del Exp.1 (mismas semillas por configuración)
 # - No modifica tu código base: subclase de EstadoExtendido con coste_km paramétrico
-# - Mide beneficio, distancia media y tiempo; SOLO MUESTRA GRÁFICOS EN PANTALLA
+# - Mide beneficio, distancia media y tiempo
 
 import time
 from math import sqrt
@@ -14,8 +14,6 @@ from problem_parametres import ProblemParameters
 from main_logistics import construir_estado_inicial
 from LogisticaProblem import LogisticaProblem
 from aima.search import hill_climbing
-
-# ---------- Subtipo de estado con coste/km paramétrico ----------
 from EstadoExtendido import EstadoExtendido, factor_precio_por_dias
 
 class EstadoCosteKm(EstadoExtendido):
@@ -147,7 +145,7 @@ def ejecutar_experimento_coste(costes=COSTES, replicas=REPLICAS) -> dict:
     return resultados
 
 # =========================
-# PLOTS — SOLO PANTALLA
+# PLOTS 
 # =========================
 def plot_linea(resultados: dict, titulo: str):
     xs = sorted(resultados.keys())

@@ -3,8 +3,11 @@
 
 import time
 import random
-from pathlib import Path
 from collections import defaultdict
+
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D   
 
 from problem_parametres import ProblemParameters
 from main_logistics import construir_estado_inicial, contar_peticiones
@@ -25,7 +28,7 @@ SETS_CHZ = {
 }
 
 N_GASOLINERAS = 100
-N_CENTROS = 10
+N_CENTROS = 15
 MULTIPLICIDAD = 1
 REPLICAS = 10
 
@@ -60,9 +63,7 @@ def patch_operadores(counter: dict[str, int]):
 
         def make_wrapper(f_original, op_name):
             def wrapper(self, *args, **kwargs):
-                # llamamos al generador original
                 gen = f_original(self, *args, **kwargs)
-                # devolvemos un nuevo generador que cuenta cada vecino
                 for op in gen:
                     counter[op_name] += 1
                     yield op
@@ -70,7 +71,6 @@ def patch_operadores(counter: dict[str, int]):
 
         wrapped = make_wrapper(orig, nombre)
         setattr(EstadoExtendido, nombre, wrapped)
-
 
 
 def unpatch_operadores():
@@ -126,7 +126,7 @@ def ejecutar_una_replica_con_conteo(activos: list[str], semilla: int) -> dict:
             "uso_operadores": dict(contador_ops),
         }
     finally:
-        # Muy importante: restaurar siempre los métodos originales
+        # restaurar siempre los métodos originales
         unpatch_operadores()
 
 
@@ -145,9 +145,14 @@ def ejecutar_experimento_ranking(replicas: int = REPLICAS) -> dict:
         for i, seed in enumerate(semillas, 1):
             res = ejecutar_una_replica_con_conteo(activos, seed)
             muestras.append(res)
+            pct_str = (
+                f"{res['pct_atendidas']:.1f}%"
+                if res["pct_atendidas"] is not None
+                else "n/a"
+            )
             print(
                 f"  réplica {i:02d}/{replicas} | ben={res['beneficio']:.2f} | "
-                f"att={res['atendidas']}/{res['total']} ({res['pct_atendidas']:.1f}%)"
+                f"att={res['atendidas']}/{res['total']} ({pct_str})"
             )
         resultados[nombre_set] = {"muestras": muestras}
 
@@ -159,8 +164,6 @@ def ejecutar_experimento_ranking(replicas: int = REPLICAS) -> dict:
 # =========================
 
 def imprimir_ranking_operadores(resultados: dict):
-    from collections import defaultdict
-
     print("\n== Ranking global de operadores por conjunto (sobre todas las réplicas) ==")
 
     for s in sorted(resultados.keys()):
@@ -183,6 +186,94 @@ def imprimir_ranking_operadores(resultados: dict):
 
 
 # =========================
+# Histograma 3D (colores + leyenda, sin nombres en ejes)
+# =========================
+
+def plot_histograma_3d(resultados: dict):
+    """
+    Histograma 3D:
+    - Eje X: sets (C, H, Z)
+    - Eje Y: índice de operador (sin nombres)
+    - Eje Z: uso medio (nº de vecinos generados por réplica)
+    Cada operador tiene un color y aparece en la leyenda.
+    """
+    sets = sorted(resultados.keys())          # ['C', 'H', 'Z']
+    operadores = OPERADORES_POSIBLES[:]       # en el orden definido
+
+    # Uso medio por réplica para cada set y operador
+    uso_medio = {s: {op: 0.0 for op in operadores} for s in sets}
+    for s in sets:
+        muestras = resultados[s]["muestras"]
+        n_rep = len(muestras) or 1
+
+        acumulado = {op: 0 for op in operadores}
+        for m in muestras:
+            uso_ops = m["uso_operadores"]
+            for op in operadores:
+                acumulado[op] += uso_ops.get(op, 0)
+
+        for op in operadores:
+            uso_medio[s][op] = acumulado[op] / n_rep
+
+    xs = np.arange(len(sets))        # 0..2
+    ys = np.arange(len(operadores))  # 0..4
+
+    dx = 0.25
+    dy = 0.25
+
+    # Colores por operador
+    colores = plt.cm.tab10(np.linspace(0, 1, len(operadores)))
+
+    fig = plt.figure(figsize=(10, 6))
+    ax = fig.add_subplot(111, projection="3d")
+
+    # Dibujar barras: color según operador (y)
+    for yi, op in enumerate(operadores):
+        for xi, s in enumerate(sets):
+            z = uso_medio[s][op]
+            ax.bar3d(
+                xi, yi, 0,
+                dx, dy, z,
+                color=colores[yi],
+                alpha=0.9,
+                shade=True,
+            )
+
+    # Ángulo de cámara para que no se solape tanto
+    ax.view_init(elev=25, azim=40)
+
+    # Eje X: sets
+    ax.set_xticks(xs + dx / 2)
+    ax.set_xticklabels(sets)
+    ax.set_xlabel("Set de operadores")
+
+    # Eje Y: solo índice (sin nombres de operadores)
+    ax.set_yticks(ys + dy / 2)
+    ax.set_yticklabels([])      # <- quitamos los nombres
+    ax.set_ylabel("Operador")
+
+    # Eje Z
+    ax.set_zlabel("Uso medio (nº de vecinos)")
+    ax.set_title("Histograma 3D — Uso medio de operadores por set")
+
+    # Leyenda con nombres de operadores
+    legend_elems = [
+        plt.Rectangle((0, 0), 1, 1, color=colores[i], label=operadores[i])
+        for i in range(len(operadores))
+    ]
+    ax.legend(
+        handles=legend_elems,
+        labels=operadores,
+        loc="center left",
+        bbox_to_anchor=(1.05, 0.5)
+    )
+
+
+    plt.subplots_adjust(right=0.78, left=0.08, bottom=0.15)
+    plt.show()
+
+
+# =========================
 # Main
 # =========================
 
@@ -192,6 +283,7 @@ def main():
 
     resultados = ejecutar_experimento_ranking(replicas=REPLICAS)
     imprimir_ranking_operadores(resultados)
+    plot_histograma_3d(resultados)
 
 
 if __name__ == "__main__":
